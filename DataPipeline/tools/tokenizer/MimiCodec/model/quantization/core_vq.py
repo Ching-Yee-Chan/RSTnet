@@ -180,7 +180,6 @@ class EuclideanCodebook(nn.Module):
         # Projects each vector in `x` over the nearest centroid and return its index.
         # `x` should be `[N, D]` with `N` the number of input vectors and `D` the dimension.
         assert x.dim() == 2
-        import pdb; pdb.set_trace()
         dists = torch.cdist(x[None], self.embedding[None], p=2)[0]
         codes = dists.argmin(dim=-1)
         return codes

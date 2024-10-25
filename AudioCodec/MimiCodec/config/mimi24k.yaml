@@ -107,8 +107,8 @@ criterion:
 
 ########### training and data config ###########
 
-training_file: train.scp
-validation_file: val.scp
+training_file: processed/train.scp
+validation_file: processed/test.scp
 semantic_model_path: WavLM-Large.pt
 
 seed: 2333

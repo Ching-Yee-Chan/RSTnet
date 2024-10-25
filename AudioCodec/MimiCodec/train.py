@@ -91,8 +91,8 @@ def main():
 
 
 def main_worker(args):
-    if args.ngpus_per_node > 1:
-        dist.init_process_group(backend="nccl", init_method="env://")
+    # if args.ngpus_per_node > 1:
+    dist.init_process_group(backend="nccl", init_method="env://")
     rank, local_rank, world_size = dist.get_rank(), int(os.environ["LOCAL_RANK"]), dist.get_world_size()
     args.local_rank = local_rank
     args.distributed = args.ngpus_per_node > 1

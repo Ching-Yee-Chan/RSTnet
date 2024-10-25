@@ -1,0 +1,5 @@
+data/
+speech_data/
+processed/
+__pycache__/
+*.pt

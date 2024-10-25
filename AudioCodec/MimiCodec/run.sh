@@ -1,6 +1,6 @@
-stage=1
-stop_stage=1
-ngpu=8  # how many GPUs, you want to use to train the model
+stage=2
+stop_stage=2
+# ngpu=1  # how many GPUs, you want to use to train the model
 
 train_set="train"
 valid_set="val"
@@ -30,7 +30,8 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "training the codec"
-    export HOST_GPU_NUM=8 # the number of GPUs to train the audio codec
+    export CUDA_VISIBLE_DEVICES=1
+    export HOST_GPU_NUM=1 # the number of GPUs to train the audio codec
     export HOST_NUM=1 
     export NODE_NUM=1
     export INDEX=0
