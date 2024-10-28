@@ -13,7 +13,7 @@
 #   -h, --help        Show this help message and exit.
 
 
-stage=1
+stage=3
 stop_stage=3
 thread_per_gpu=12
 
@@ -25,6 +25,8 @@ num_workers=$(($ngpu * $thread_per_gpu))
 # wav_scp=""
 db_root="/mnt/Corpus/Speech/OpenData/LJSpeech"
 processed_root="/mnt/users/hccl.local/jkzhao/data/LJSpeech_processed"
+llm_ckpt_dir="/mnt/users/hccl.local/jkzhao/ckpts/meta-llama/Meta-Llama-3.1-8B-Instruct"
+# llm_ckpt_dir="/mnt/users/hccl.local/jkzhao/.cache/huggingface/hub/models--kyutai--moshiko-pytorch-bf16/snapshots/2bfc9ae6e89079a5cc7ed2a68436010d91a3d289"
 name="ljspeech"
 
 
@@ -80,35 +82,41 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     # ASR
     # This will yield wav_asr.JOB.scp and utt2json
     echo "ASR with whisperX"
-    num_files=$(cat $log_dir/wav.scp | wc -l)
-    start_time=$(date +%s)
+    # num_files=$(cat $log_dir/wav.scp | wc -l)
+    # start_time=$(date +%s)
 
-    $work_dir/utils/run.pl JOB=1:$num_workers  $log_dir/${num_workers}splits/log/asr.JOB.log \
+    # $work_dir/utils/run.pl JOB=1:$num_workers  $log_dir/${num_workers}splits/log/asr.JOB.log \
+    # python $work_dir/local/asr_whisperx.py \
+    #     --rank JOB \
+    #     --input-file $log_dir/${num_workers}splits/wav.JOB.scp \
+    #     --audio-input-dir $db_root \
+    #     --output-file $log_dir/${num_workers}splits/wav_asr.JOB.scp \
+    #     --metadata-output-dir "${processed_root}/metadata"
+
+    # end_time=$(date +%s)
+    # elapsed_time=$((end_time - start_time))
+    # echo "ASR processing time: $elapsed_time seconds"
+    # echo "ASR processing speed: $(echo "scale=2; $elapsed_time / $num_files * $ngpu" | bc) s/files per GPU"
+    # echo "ASR processing speed: $(echo "scale=2; $elapsed_time / $num_files * $num_workers" | bc) s/files per thread"
+
     python $work_dir/local/asr_whisperx.py \
-        --rank JOB \
-        --input-file $log_dir/${num_workers}splits/wav.JOB.scp \
+        --rank 1 \
+        --input-file $log_dir/${num_workers}splits/wav.1.scp \
         --audio-input-dir $db_root \
-        --output-file $log_dir/${num_workers}splits/wav_asr.JOB.scp \
+        --output-file $log_dir/${num_workers}splits/wav_asr.1.scp \
         --metadata-output-dir "${processed_root}/metadata"
-
-    end_time=$(date +%s)
-    elapsed_time=$((end_time - start_time))
-    echo "ASR processing time: $elapsed_time seconds"
-    echo "ASR processing speed: $(echo "scale=2; $elapsed_time / $num_files * $ngpu" | bc) s/files per GPU"
-    echo "ASR processing speed: $(echo "scale=2; $elapsed_time / $num_files * $num_workers" | bc) s/files per thread"
 fi
 
 # conda activate open-moshi
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "Prepare text and audio sequence"
     mkdir -p ${processed_root}/codecs
-    export PYTHONPATH="$mimi_root:$PYTHONPATH"
     $work_dir/utils/run.pl JOB=1:$num_workers  $log_dir/${num_workers}splits/log/tokenize_dump.JOB.log \
-    python3 $work_dir/local/offline_tokenization.py \
+    python3 $work_dir/local/tokenize_monochannel.py \
         --input-audio-file $log_dir/${num_workers}splits/wav.JOB.scp \
         --input-text-file $log_dir/${num_workers}splits/utt2json.JOB \
         --output-file ${processed_root}/codecs/${part}/${num_workers}splits/codec.JOB.pt \
         --root-dir $processed_root \
-        --rank JOB || exit 1;
-    export PYTHONPATH=$original_pythonpath
+        --rank JOB \
+        --llm-ckpt-dir $llm_ckpt_dir || exit 1;
 fi

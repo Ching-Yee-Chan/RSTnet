@@ -84,8 +84,9 @@ class MimiCodec(nn.Module):
         apply quantization 60% of quantization features
         """
         mask = torch.rand((audio_data.shape[0])) >= 0.4 # transfer to true or false
-        mask = mask.unsqueeze(1).unsqueeze(2).repeat(1, quantizedResult.x.shape[1], quantizedResult.x.shape[2]).to(audio_data.device)
-        z_q = torch.where(mask, quantizedResult.x, z) # 
+        quantized = quantizedResult.x.permute((0, 2, 1))
+        mask = mask.unsqueeze(1).unsqueeze(2).repeat(1, quantized.shape[1], quantized.shape[2]).to(audio_data.device)
+        z_q = torch.where(mask, quantized, z) # 
         z_q = self.upsample(z_q)
         z_q = self.decoder_transformer(z_q)[0]
         rec = self.decoder(z_q)

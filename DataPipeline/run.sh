@@ -1,0 +1,1 @@
+bash egs/single_stream.sh --db-root /mnt/Corpus/Speech/OpenData/LJSpeech --processed-root /mnt/users/hccl.local/jkzhao/data/LJSpeech_processed --name ljspeech

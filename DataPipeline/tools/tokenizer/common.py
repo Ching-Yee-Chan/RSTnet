@@ -1,3 +1,4 @@
+import re
 import torch
 import random
 
@@ -72,3 +73,18 @@ def codec_specaug(codec, mask_id):
 
     return codec.view(-1).contiguous()
     
+def fix_and_load_json(s):
+    # Remove trailing commas before } or ]
+    s = re.sub(r',(\s*[}\]])', r'\1', s)
+
+    # Insert missing commas between properties
+    # Match positions where a value is followed by a newline and then a quote without a comma
+    pattern = r'(?<=[}\]0-9truefalsenull"])\s*(\n\s*)"'
+    replacement = r',\1"'
+    s = re.sub(pattern, replacement, s)
+
+    # Now try to parse the JSON
+    try:
+        return json.loads(s)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Failed to parse JSON after fixing: {e}")
