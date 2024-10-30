@@ -46,7 +46,11 @@ class TextTokenizer(AbsTokenizer):
                     self.bos_id = config.get("bos_token_id")
                 if self.eos_id is None:
                     self.eos_id = config.get("eos_token_id")
-        
+            # Set <PAD> <EPAD> token ids
+            # self.pad_id = self.init_special_token(token_name="<|pad|>", save_dir=checkpoint_dir)
+            # self.epad_id = self.init_special_token(token_name="<|epad|>", save_dir=checkpoint_dir)
+            self.pad_id = self.token_to_id("<|reserved_special_token_0|>")
+            self.epad_id = self.token_to_id("<|reserved_special_token_1|>")
         else:
             vocabulary_path = next(checkpoint_dir.glob("tokenizer*.model"), None)
             assert vocabulary_path is not None, f"No vocabulary file found in {str(checkpoint_dir)}"
@@ -57,20 +61,31 @@ class TextTokenizer(AbsTokenizer):
             self.bos_id = self.model.bos_id()
             self.eos_id = self.model.eos_id()
 
-        # Set special token ids
-        self.pad_id = 0    # 0: <unk> / <epad>
-        self.epad_id = 3    # 3: <pad>
+            # Set special token ids
+            self.epad_id = 0    # 0: <unk> / <epad>
+            self.pad_id = 3    # 3: <pad>
     
-    def token_to_id(self, token: str) -> int:
+    def token_to_id(self, token: str) -> int|None:
         if self.backend == "huggingface":
             id_ = self.model.token_to_id(token)
         elif self.backend == "sentencepiece":
             id_ = self.model.piece_to_id(token)
         else:
             raise RuntimeError
-        if id_ is None:
-            raise ValueError(f"token {token!r} not found in the collection.")
         return id_
+
+    # 暂时没用了
+    def init_special_token(self, token_name, save_dir=None):
+        token_id = self.token_to_id(token_name)
+        if token_id is not None:
+            return token_id
+        else:
+            assert self.backend == "huggingface", "Only huggingface tokenizer supports adding new tokens."
+            self.model.add_special_tokens([token_name])
+            if save_dir is not None:
+                self.model.save(str(save_dir / "tokenizer.json"))
+            token_id = self.token_to_id(token_name)
+            return token_id
     
     def get_word_to_subword_mapping(self, tokens, ids):
         word_to_subword = []
